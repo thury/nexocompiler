@@ -1,0 +1,20 @@
+arranca
+	datos carga("animales.csv")
+	limpia datos
+	divide datos en 80
+
+	modelo = crea modelo
+
+	repetir 5 veces
+		entrena modelo con datos
+	hasta alcanzado 0.90
+
+	resultado = predice modelo
+
+	si resultado > 0.8
+		muestra "Prediccion confiable"
+		guarda modelo en "modelo_final.nexo"
+	sino
+		muestra "Ajuste requerido"
+	cierra
+cierra

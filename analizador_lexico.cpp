@@ -4,32 +4,48 @@
 #include <cctype>
 #include <unordered_map>
 #include <unordered_set>
+#include <algorithm>
 
-std::unordered_set<std::string> palabrasClave = { "inicio", "escribir", "capturar", "si", "entonces", "sino", "mientras", "hacer", "fin" };
-std::unordered_map<std::string, std::string> tiposPalabrasClave = {
-	{ "inicio", "KW_INICIO" },
-	{ "escribir", "KW_ESCRIBIR" },
-	{ "capturar", "KW_CAPTURAR" },
-	{ "si", "KW_SI" },
-	{ "entonces", "KW_ENTONCES" },
-	{ "sino", "KW_SINO" },
-	{ "mientras", "KW_MIENTRAS" },
-	{ "hacer", "KW_HACER" },
-	{ "fin", "KW_FIN" }
-};
+std::unordered_set<std::string> palabrasClave = { "arranca", "muestra", "capturar",
+	 "si", "entonces", "sino", "mientras", "hacer", "cierra" };
 
 std::vector<std::vector<int>> matriz;
 
+enum error_codes {
+	ERROR_FORMATO_NUM_REAL = -1,
+	ERROR_FORMATO_NUM_NOTACION_CIENTIFICA = -2,
+	ERROR_EXPONENTE_NO_ENTERO = -3,
+	ERROR_PUNTO_DESPUES_IDENTIFICADOR = -4,
+	ERROR_SIGNO_DESPUES_IDENTIFICADOR = -5,
+	ERROR_IDENTIFICADOR_NO_VALIDO = -6,
+	ERROR_DEFINICION = -7
+};
+
+enum columna {
+	DELIMITADOR = 0,
+	DIGITO = 1,
+	PUNTO = 2,
+	SIGNO = 3,
+	NOTACION_CIENTIFICA = 4,
+	LETRA = 5,
+	GUION_BAJO = 6,
+	OPERADOR = 7,
+	COMILLAS = 8,
+	OP_IGUAL = 9
+};
+
 void construir_matriz_transicion() {
 	std::vector<std::vector<int>> matriztmp = {
-	    {  0,   1,  -5, 500,   7,   7,  -5, 500}, // estado 0
-		{100,   1,   2, 100,   4,  -1,  -1,  -1}, // estado 1
-		{ -2,   3,  -2,  -2,  -2,  -2,  -2,  -1}, // estado 2
-		{200,   3,  -2, 200,   4,  -2,  -2,  -1}, // estado 3
-		{ -3,   6,  -3,   5,  -3,  -3,  -3,  -1}, // estado 4
-		{ -3,   6,  -3,  -3,  -3,  -3,  -3,  -1}, // estado 5
-		{300,   6,  -3, 300,  -3,  -3,  -3,  -1}, // estado 6
-		{400,   7,  -4,  -5,   7,   7,   7,  -1},  // estado 7
+	    {  0,   1,  -5, 500,   7,   7,  -5, 500,    9,   8}, // estado 0
+		{100,   1,   2, 100,   4,  -1,  -1,  -1,   -1,  -1}, // estado 1
+		{ -2,   3,  -2,  -2,  -2,  -2,  -2,  -2,   -2,  -1}, // estado 2
+		{200,   3,  -2, 200,   4,  -2,  -2,  -1,   -2, 200}, // estado 3
+		{ -3,   6,  -3,   5,  -3,  -3,  -3,  -1,   -2,  -2}, // estado 4
+		{ -3,   6,  -3,  -3,  -3,  -3,  -3,  -1,   -1,  -2}, // estado 5
+		{300,   6,  -3, 300,  -3,  -3,  -3,  -1,   -1, 300}, // estado 6
+		{400,   7,  -4,  -5,   7,   7,   7,  -1,   -1,  -1},  // estado 7
+		{600, 600,  -4,  -5,  -7, 600,  -7,  -7,   -7, 800},  // estado 8 (asignacion)
+		{  9,   9,   9,   9,   9,   9,   9,   9,  700,   9},  // estado 9 (cadena de caracteres)
 	};
 
 	matriz = matriztmp;
@@ -44,23 +60,25 @@ struct Token {
 
 int obtener_columna(char c) {
 	switch (c) {
-		case ' ': return 0; // delimitadores
-		case '\t': return 0;
-		case '\n': return 0;
-		case '.': return 2; // punto
-		case '+': return 3; // signos
-		case '-': return 3;
-		case 'E': return 4; // notacion cientifica
-		case 'e': return 4;
-		case '_': return 6; // guion bajo
-		case '*': return 7; // operadores
-		case '/': return 7;
-		case '%': return 7;
+		case ' ': return DELIMITADOR; // delimitadores
+		case '\t': return DELIMITADOR;
+		case '\n': return DELIMITADOR;
+		case '.': return PUNTO; // punto
+		case '+': return SIGNO; // signos
+		case '-': return SIGNO;
+		case 'E': return NOTACION_CIENTIFICA; // notacion cientifica
+		case 'e': return NOTACION_CIENTIFICA;
+		case '_': return GUION_BAJO; // guion bajo
+		case '*': return OPERADOR; // operadores
+		case '/': return OPERADOR;
+		case '%': return OPERADOR;
+		case '=': return OP_IGUAL; // asignacion
+		case '"': return COMILLAS; // comillas
 		default:
 			if (std::isdigit(static_cast<unsigned char>(c))) // digitos
-				return 1;
+				return DIGITO;
 			if (std::isalpha(static_cast<unsigned char>(c))) // letras
-				return 5; 
+				return LETRA;
 			return -1; // caracter no reconocido
 	}
 	return -1;
@@ -73,15 +91,22 @@ std::string obtener_tipo_token(int q) {
 		case 300: return "NumNotacionCientifica";
 		case 400: return "Id";
 		case 500: return "OperadorAritmetico";
+		case 600: return "Asignacion";
+		case 700: return "CadenaCaracteres";
+		case 800: return "Igualdad";
 		default: return "Token";
 	}
 }
 
 std::string obtener_tipo_lexema(int q, const std::string &lexema) {
 	if (q == 400) {
-		auto palabraClave = tiposPalabrasClave.find(lexema);
-		if (palabraClave != tiposPalabrasClave.end())
-			return palabraClave->second;
+		auto lexema_lower = lexema;
+		if (palabrasClave.find(lexema) != palabrasClave.end()) {
+			std::transform(lexema_lower.begin(), lexema_lower.end(), lexema_lower.begin(), [](unsigned char c) {
+				return std::toupper(c);
+			});
+			return "KW_" + lexema_lower; // Palabra clave
+		}
 	}
 	return obtener_tipo_token(q);
 }
@@ -89,23 +114,26 @@ std::string obtener_tipo_lexema(int q, const std::string &lexema) {
 void error_lexico(const std::string &lexema, int error_code = -1) {
 	std::cout << "Error lexico en: " << lexema << std::endl;
 	switch (error_code) {
-		case -1:
+		case ERROR_FORMATO_NUM_REAL:
 			std::cout << "Error de formato en el numero real o notacion cientifica" << std::endl;
 			break;
-		case -2:
-			std::cout << "Error de formato en el numero real" << std::endl;
+		case ERROR_FORMATO_NUM_NOTACION_CIENTIFICA:
+			std::cout << "Error de formato en la notacion cientifica" << std::endl;
 			break;
-		case -3:
+		case ERROR_EXPONENTE_NO_ENTERO:
 			std::cout << "El exponente debe ser un numero entero" << std::endl;
 			break;
-		case -4:
+		case ERROR_PUNTO_DESPUES_IDENTIFICADOR:
 			std::cout << "No se permiten puntos despues de un identificador" << std::endl;
 			break;
-		case -5:
+		case ERROR_SIGNO_DESPUES_IDENTIFICADOR:
 			std::cout << "No se permiten signos despues de un identificador" << std::endl;
 			break;
-		case -6:
+		case ERROR_IDENTIFICADOR_NO_VALIDO:
 			std::cout << "Identificador no valido" << std::endl;
+			break;
+		case ERROR_DEFINICION:
+			std::cout << "Error de definicion" << std::endl;
 			break;
 		default:
 			std::cout << "Error desconocido" << std::endl;
@@ -118,24 +146,43 @@ std::vector<Token> busca_simbolos(const std::vector<std::vector<int>> &matriz, c
 	int q = 0;
 	std::string lexema_actual;
 
-	for (size_t i = 0; i < cadena.size(); ++i) {
+	size_t i = 0;
+	while (i < cadena.size()) {
 		int col = obtener_columna(cadena[i]);
 
-		if (col == -1) {
+		if (col == -1) { // Carácter escaneado no reconocido
+			// mecanismo lookahead para verificar si el estado actual es un estado final
+			int estado_final = matriz[q][DELIMITADOR];
+			if (estado_final != 0 && estado_final % 100 == 0) {
+				tokens.emplace_back(obtener_tipo_lexema(estado_final, lexema_actual), lexema_actual);
+				q = 0;
+				lexema_actual.clear();
+				continue;
+			}
 			std::string s(1, cadena[i]);
-			error_lexico(s, -1);
+			error_lexico(s, -100);
+			i++;
 			continue;
 		}
 
 		int nuevo_estado = matriz[q][col];
 
-		if (nuevo_estado < 0) {
+		if (nuevo_estado < 0) { // Error en la transición
+			// mecanismo lookahead para verificar si el estado actual es un estado final
+			int estado_final = matriz[q][DELIMITADOR];
+			if (estado_final != 0 && estado_final % 100 == 0) {
+				tokens.emplace_back(obtener_tipo_lexema(estado_final, lexema_actual), lexema_actual);
+				q = 0;
+				lexema_actual.clear();
+				continue;
+			}
 			if (!lexema_actual.empty()) {
 				std::string l = lexema_actual + cadena[i];
 				error_lexico(l, nuevo_estado);
 			}
 			q = 0;
 			lexema_actual.clear();
+			i++;
 			continue;
 		}
 
@@ -149,6 +196,8 @@ std::vector<Token> busca_simbolos(const std::vector<std::vector<int>> &matriz, c
 			q = 0;
 			lexema_actual.clear();
 		}
+
+		++i;
 	}
 
 	return tokens;
