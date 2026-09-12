@@ -89,7 +89,7 @@ int obtener_columna(char c) {
             if (std::isalpha(static_cast<unsigned char>(c))) 
                 return 5;
             return -1; // caracter no reconocido
-    }
+    } 
     return -1;
 }
 
