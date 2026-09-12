@@ -5,6 +5,11 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <algorithm>
+#include <fstream>
+#include <sstream>
+#include <cstring> // Necesario para strerror
+#include <cerrno>  // Necesario para errno
+
 
 std::unordered_set<std::string> palabrasClave = { "arranca", "muestra", "capturar",
 	 "si", "entonces", "sino", "mientras", "hacer", "cierra" };
@@ -34,23 +39,6 @@ enum columna {
 	OP_IGUAL = 9
 };
 
-void construir_matriz_transicion() {
-	std::vector<std::vector<int>> matriztmp = {
-	    {  0,   1,  -5, 500,   7,   7,  -5, 500,    9,   8}, // estado 0
-		{100,   1,   2, 100,   4,  -1,  -1,  -1,   -1,  -1}, // estado 1
-		{ -2,   3,  -2,  -2,  -2,  -2,  -2,  -2,   -2,  -1}, // estado 2
-		{200,   3,  -2, 200,   4,  -2,  -2,  -1,   -2, 200}, // estado 3
-		{ -3,   6,  -3,   5,  -3,  -3,  -3,  -1,   -2,  -2}, // estado 4
-		{ -3,   6,  -3,  -3,  -3,  -3,  -3,  -1,   -1,  -2}, // estado 5
-		{300,   6,  -3, 300,  -3,  -3,  -3,  -1,   -1, 300}, // estado 6
-		{400,   7,  -4,  -5,   7,   7,   7,  -1,   -1,  -1},  // estado 7
-		{600, 600,  -4,  -5,  -7, 600,  -7,  -7,   -7, 800},  // estado 8 (asignacion)
-		{  9,   9,   9,   9,   9,   9,   9,   9,  700,   9},  // estado 9 (cadena de caracteres)
-	};
-
-	matriz = matriztmp;
-}
-
 struct Token {
 	std::string tipo;
 	std::string lexema;
@@ -58,46 +46,69 @@ struct Token {
 	Token(const std::string &t, const std::string &l) : tipo(t), lexema(l) {}
 };
 
+void construir_matriz_transicion() {
+    std::vector<std::vector<int>> matriztmp = {
+        // 0(esp) 1(dig) 2(.)  3(+-) 4(Ee) 5(let) 6(_)  7(op) 8(=)  9(")  10( ( ) 11( ) ) 12( > )
+        {  0,     1,    -5,   500,  7,    7,    -5,   500,  8,    9,    900,    1000,   1100}, // 0: Inicio
+        {100,     1,     2,   100,  4,    -1,   -1,   -1,   -1,   -1,   100,    100,    100 }, // 1: Entero
+        { -2,     3,    -2,   -2,  -2,    -2,   -2,   -2,   -2,   -1,    -2,     -2,     -2 }, // 2: Punto decimal
+        {200,     3,    -2,   200,  4,    -2,   -2,   -1,   -2,  200,   200,    200,    200 }, // 3: Real
+        { -3,     6,    -3,     5, -3,    -3,   -3,   -1,   -2,   -2,    -3,     -3,     -3 }, // 4: 'e' / 'E'
+        { -3,     6,    -3,    -3, -3,    -3,   -3,   -1,   -1,   -2,    -3,     -3,     -3 }, // 5: Signo exp
+        {300,     6,    -3,   300, -3,    -3,   -3,   -1,   -1,  300,   300,    300,    300 }, // 6: Cientifico
+        {400,     7,    -4,    -5,  7,     7,    7,  400,  400,  400,   400,    400,    400 }, // 7: ID 
+        {600,   600,   600,   600, 600,  600,  600,  600,  800,  600,   600,    600,    600 }, // 8: Asignacion (=) o Igualdad (==)
+        {  9,     9,     9,     9,  9,     9,    9,    9,    9,  700,     9,      9,      9 }  // 9: Cadena ("...")
+    };
+
+    matriz = matriztmp;
+}
+
 int obtener_columna(char c) {
-	switch (c) {
-		case ' ': return DELIMITADOR; // delimitadores
-		case '\t': return DELIMITADOR;
-		case '\n': return DELIMITADOR;
-		case '.': return PUNTO; // punto
-		case '+': return SIGNO; // signos
-		case '-': return SIGNO;
-		case 'E': return NOTACION_CIENTIFICA; // notacion cientifica
-		case 'e': return NOTACION_CIENTIFICA;
-		case '_': return GUION_BAJO; // guion bajo
-		case '*': return OPERADOR; // operadores
-		case '/': return OPERADOR;
-		case '%': return OPERADOR;
-		case '=': return OP_IGUAL; // asignacion
-		case '"': return COMILLAS; // comillas
-		default:
-			if (std::isdigit(static_cast<unsigned char>(c))) // digitos
-				return DIGITO;
-			if (std::isalpha(static_cast<unsigned char>(c))) // letras
-				return LETRA;
-			return -1; // caracter no reconocido
-	}
-	return -1;
+    switch (c) {
+        case ' ': return 0; // delimitadores
+        case '\t': return 0;
+        case '\n': return 0;
+        case '.': return 2; // punto
+        case '+': return 3; // signos
+        case '-': return 3;
+        case 'E': return 4; // notacion cientifica
+        case 'e': return 4;
+        case '_': return 6; // guion bajo
+        case '*': return 7; // operadores
+        case '/': return 7;
+        case '%': return 7;
+        case '=': return 8; // asignacion
+        case '"': return 9; // comillas
+        case '(': return 10; // parentesis abre
+        case ')': return 11; // parentesis cierra
+        case '>': return 12; // comparador
+        default:
+            if (std::isdigit(static_cast<unsigned char>(c))) 
+                return 1;
+            if (std::isalpha(static_cast<unsigned char>(c))) 
+                return 5;
+            return -1; // caracter no reconocido
+    }
+    return -1;
 }
 
 std::string obtener_tipo_token(int q) {
-	switch (q) {
-		case 100: return "NumEntero";
-		case 200: return "NumReal";
-		case 300: return "NumNotacionCientifica";
-		case 400: return "Id";
-		case 500: return "OperadorAritmetico";
-		case 600: return "Asignacion";
-		case 700: return "CadenaCaracteres";
-		case 800: return "Igualdad";
-		default: return "Token";
-	}
+    switch (q) {
+        case 100: return "NumEntero";
+        case 200: return "NumReal";
+        case 300: return "NumNotacionCientifica";
+        case 400: return "Id";
+        case 500: return "OperadorAritmetico";
+        case 600: return "Asignacion";
+        case 700: return "CadenaCaracteres";
+        case 800: return "Igualdad";
+        case 900: return "ParentesisAbre";
+        case 1000: return "ParentesisCierra";
+        case 1100: return "ComparadorMayor";
+        default: return "Token";
+    }
 }
-
 std::string obtener_tipo_lexema(int q, const std::string &lexema) {
 	if (q == 400) {
 		auto lexema_lower = lexema;
@@ -151,7 +162,6 @@ std::vector<Token> busca_simbolos(const std::vector<std::vector<int>> &matriz, c
 		int col = obtener_columna(cadena[i]);
 
 		if (col == -1) { // Carácter escaneado no reconocido
-			// mecanismo lookahead para verificar si el estado actual es un estado final
 			int estado_final = matriz[q][DELIMITADOR];
 			if (estado_final != 0 && estado_final % 100 == 0) {
 				tokens.emplace_back(obtener_tipo_lexema(estado_final, lexema_actual), lexema_actual);
@@ -168,7 +178,6 @@ std::vector<Token> busca_simbolos(const std::vector<std::vector<int>> &matriz, c
 		int nuevo_estado = matriz[q][col];
 
 		if (nuevo_estado < 0) { // Error en la transición
-			// mecanismo lookahead para verificar si el estado actual es un estado final
 			int estado_final = matriz[q][DELIMITADOR];
 			if (estado_final != 0 && estado_final % 100 == 0) {
 				tokens.emplace_back(obtener_tipo_lexema(estado_final, lexema_actual), lexema_actual);
@@ -211,12 +220,24 @@ static inline std::string trim(const std::string &s) {
 	return s.substr(start, end - start);
 }
 
-int main() {
+std::string leer_archivo(const std::string &nombre_archivo) throw(std::ios_base::failure) {
+	std::ifstream archivo(nombre_archivo);
+	if (!archivo.is_open()) {
+		std::cerr << "No se pudo abrir el archivo: " << nombre_archivo << std::endl << "Error: " << std::strerror(errno) << std::endl;
+		throw std::ios_base::failure("No se pudo abrir el archivo");
+	}
+	std::stringstream buffer;
+	buffer << archivo.rdbuf();
+	return buffer.str();
+}
+
+int main(int argc, char *argv[]) {
 	construir_matriz_transicion();
 	std::string cadena;
-	std::cout << "Introduce una linea: ";
-	if (!std::getline(std::cin, cadena)) return 0;
+	std::string nombre_archivo = argc > 1 ? argv[1] : "ejemplo.nexo";
 
+	cadena = leer_archivo(nombre_archivo);
+	
 	cadena = trim(cadena) + " "; // Agrega un espacio al final para procesar el último token
 
 	std::vector<Token> tokens = busca_simbolos(matriz, cadena);
