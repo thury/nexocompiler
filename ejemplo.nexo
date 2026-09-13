@@ -1,5 +1,23 @@
 arranca
-	capturar nombre
-	muestra "Hola mundo"
-	muestra "Bienvenido " + nombre
+
+contador = 0
+limite = 10
+promedio = 0.75
+cientifico = 1.25E+03
+
+mientras contador > limite
+    contador = contador + 1
+    muestra "Contador actualizado"
+hacer
+
+si contador == limite
+    muestra "Se alcanzo el limite"
+sino
+    muestra "El limite aun no se alcanza"
+cierra
+
+resultado = (contador * 2) / 4
+resto = contador % 2
+nombre = "modelo_prueba.nexo"
+
 cierra

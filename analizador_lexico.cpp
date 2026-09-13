@@ -36,7 +36,11 @@ enum columna {
 	GUION_BAJO = 6,
 	OPERADOR = 7,
 	COMILLAS = 8,
-	OP_IGUAL = 9
+	OP_IGUAL = 9,
+	COMILLAS = 10,
+	PARENTESIS_ABRIR = 11,
+	PARENTESIS_CERRAR = 12,
+	COMPARADOR_MAYOR = 13
 };
 
 struct Token {
@@ -56,7 +60,7 @@ void construir_matriz_transicion() {
         { -3,     6,    -3,     5, -3,    -3,   -3,   -1,   -2,   -2,    -3,     -3,     -3 }, // 4: 'e' / 'E'
         { -3,     6,    -3,    -3, -3,    -3,   -3,   -1,   -1,   -2,    -3,     -3,     -3 }, // 5: Signo exp
         {300,     6,    -3,   300, -3,    -3,   -3,   -1,   -1,  300,   300,    300,    300 }, // 6: Cientifico
-        {400,     7,    -4,    -5,  7,     7,    7,  400,  400,  400,   400,    400,    400 }, // 7: ID 
+        {400,     7,   400,   400,  7,     7,    7,  400,  400,  400,   400,    400,    400 }, // 7: ID 
         {600,   600,   600,   600, 600,  600,  600,  600,  800,  600,   600,    600,    600 }, // 8: Asignacion (=) o Igualdad (==)
         {  9,     9,     9,     9,  9,     9,    9,    9,    9,  700,     9,      9,      9 }  // 9: Cadena ("...")
     };
@@ -66,23 +70,23 @@ void construir_matriz_transicion() {
 
 int obtener_columna(char c) {
     switch (c) {
-        case ' ': return 0; // delimitadores
-        case '\t': return 0;
-        case '\n': return 0;
-        case '.': return 2; // punto
-        case '+': return 3; // signos
-        case '-': return 3;
-        case 'E': return 4; // notacion cientifica
-        case 'e': return 4;
-        case '_': return 6; // guion bajo
-        case '*': return 7; // operadores
-        case '/': return 7;
-        case '%': return 7;
-        case '=': return 8; // asignacion
-        case '"': return 9; // comillas
-        case '(': return 10; // parentesis abre
-        case ')': return 11; // parentesis cierra
-        case '>': return 12; // comparador
+        case ' ': return DELIMITADOR; // delimitadores
+        case '\t': return DELIMITADOR;
+        case '\n': return DELIMITADOR;
+        case '.': return PUNTO; // punto
+        case '+': return SIGNO; // signos
+        case '-': return SIGNO;
+        case 'E': return NOTACION_CIENTIFICA; // notacion cientifica
+        case 'e': return NOTACION_CIENTIFICA;
+        case '_': return GUION_BAJO; // guion bajo
+        case '*': return OPERADOR; // operadores
+        case '/': return OPERADOR;
+        case '%': return OPERADOR;
+        case '=': return OP_IGUAL; // asignacion
+        case '"': return COMILLAS; // comillas
+        case '(': return PARENTESIS_ABRIR; // parentesis abre
+        case ')': return PARENTESIS_CERRAR; // parentesis cierra
+        case '>': return COMPARADOR_MAYOR; // comparador
         default:
             if (std::isdigit(static_cast<unsigned char>(c))) 
                 return 1;
