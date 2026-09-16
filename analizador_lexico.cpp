@@ -113,6 +113,11 @@ void construir_matriz_transicion() {
 		trie.insert(palabra);
 	}
 
+	//para cada letra en el Trie, hacer una columna en la matriz de transicion
+	//para cada nodo en el trie, hacer una fila (estado) en la matriz de transicion,
+	//tal que cada interseccion de fila y columna representa la transicion de estado para ese caracter
+
+
     matriz = matriztmp;
 }
 
