@@ -11,10 +11,12 @@
 #include <cerrno>
 #include <iomanip> // Necesario para dar formato a la tabla (std::setw, std::left)
 
-const std::unordered_set<std::string> palabrasClave = { "arranca", "muestra", "capturar",
-	 "si", "entonces", "sino", "mientras", "hacer", "cierra" };
-
-std::unordered_set<char> lenguajePalabrasClave;
+const std::unordered_set<std::string> palabrasClave = { 
+    "arranca", "cadena", "capturar", "carac", "cierra", 
+    "dec", "entero", "entonces", "escribir", "fin", 
+    "hacer", "hasta", "inc", "inicio", "leer", 
+    "mientras", "muestra", "real", "si", "sino", "ver" 
+};
 
 std::vector<std::vector<int>> matriz;
 
@@ -119,12 +121,14 @@ std::string obtener_tipo_token(int q) {
 std::string obtener_tipo_lexema(int q, const std::string &lexema) {
 	if (q == 400) {
 		auto lexema_lower = lexema;
-		if (palabrasClave.find(lexema) != palabrasClave.end()) {
-			std::transform(lexema_lower.begin(), lexema_lower.end(), lexema_lower.begin(), [](unsigned char c) {
-				return std::toupper(c);
-			});
-			return "KW_" + lexema_lower;
+		if (palabrasClave.find(lexema) == palabrasClave.end()) {
+			return "Id";
 		}
+		//Es una keyword
+		std::transform(lexema_lower.begin(), lexema_lower.end(), lexema_lower.begin(), [](unsigned char c) {
+			return std::toupper(c);
+		});
+		return "KW_" + lexema_lower;
 	}
 	return obtener_tipo_token(q);
 }
@@ -227,8 +231,9 @@ std::vector<Token> busca_simbolos(const std::vector<std::vector<int>> &matriz, c
 
 		q = nuevo_estado;
 
-		if (col != 0)
+		if (col != 0 || q == 9)
 			lexema_actual.push_back(c);
+			
 
 		if (q % 100 == 0 && q != 0) {
 			tokens.emplace_back(obtener_tipo_lexema(q, lexema_actual), lexema_actual, linea_actual);

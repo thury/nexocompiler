@@ -6,7 +6,7 @@ promedio = 0.75
 cientifico = 1.25E+03
 
 mientras contador > limite
-    contador = contador + 1
+    inc contador
     muestra "Contador actualizado"
 hacer
 
