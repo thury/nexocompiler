@@ -52,46 +52,6 @@ struct Token {
 	Token(const std::string &t, const std::string &l, int n) : tipo(t), lexema(l), linea(n) {}
 };
 
-struct TrieNode {
-	std::unordered_map<char, TrieNode*> children;
-	bool isEndOfWord;
-
-	TrieNode(bool endOfWord) : isEndOfWord(endOfWord) {}
-};
-
-class Trie {
-	TrieNode root;
-
-	public:
-	void insert(const std::string &word) {
-		TrieNode *node = &root;
-		for (char c : word) {
-			if (node->children.find(c) == node->children.end()) {
-				node->children[c] = new TrieNode(false);
-			}
-			node = node->children[c];
-		}
-		node->isEndOfWord = true;
-	}
-
-	void deleteTrie(TrieNode *node) {
-		for (auto &pair : node->children) {
-			deleteTrie(pair.second);
-		}
-		delete node;
-	}
-
-	TrieNode* getRoot() {
-		return &root;
-	}
-
-	Trie(char c) : root(TrieNode(false)) {}
-
-	~Trie() {
-		deleteTrie(&root);
-	}
-};
-
 void construir_matriz_transicion() {
     std::vector<std::vector<int>> matriztmp = {
         // 0(esp) 1(dig) 2(.)  3(+-) 4(Ee) 5(let) 6(_)  7(op) 8(=)  9(")  10( ( ) 11( ) ) 12( > )
@@ -106,12 +66,6 @@ void construir_matriz_transicion() {
         {600,    -1,    -1,    -1, -1,    -1,   -1,   -1,  800,   -1,    -1,     -6,     -6 }, // 8: Asignacion (=) o Igualdad (==)
         {  9,     9,     9,     9,  9,     9,    9,    9,    9,  700,     9,      9,      9 }  // 9: Cadena ("...")
     };
-
-	// palabras claves
-	Trie trie(' '); // Inicializa el Trie 
-	for (const auto &palabra : palabrasClave) {
-		trie.insert(palabra);
-	}
 
     matriz = matriztmp;
 }
