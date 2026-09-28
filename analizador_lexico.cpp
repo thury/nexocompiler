@@ -1,15 +1,4 @@
-#include <iostream>
-#include <vector>
-#include <string>
-#include <cctype>
-#include <unordered_map>
-#include <unordered_set>
-#include <algorithm>
-#include <fstream>
-#include <sstream>
-#include <cstring>
-#include <cerrno>
-#include <iomanip> // Necesario para dar formato a la tabla (std::setw, std::left)
+#include "compiler.h"
 
 const std::unordered_set<std::string> palabrasClave = { 
     "arranca", "cadena", "capturar", "carac", "cierra", 
@@ -247,7 +236,7 @@ std::vector<Token> busca_simbolos(const std::vector<std::vector<int>> &matriz, c
 	return tokens;
 }
 
-std::string leer_archivo(const std::string &nombre_archivo) throw(std::ios_base::failure) {
+std::string leer_archivo(const std::string &nombre_archivo) {
 	std::ifstream archivo(nombre_archivo);
 	if (!archivo.is_open()) {
 		std::cerr << "No se pudo abrir el archivo: " << nombre_archivo << std::endl << "Error: " << std::strerror(errno) << std::endl;
@@ -258,16 +247,12 @@ std::string leer_archivo(const std::string &nombre_archivo) throw(std::ios_base:
 	return buffer.str();
 }
 
-int main(int argc, char *argv[]) {
+std::vector<Token> analizar_lexico(int argc, char *argv[]) {
 	construir_matriz_transicion();
 	std::string cadena;
 	std::string nombre_archivo = argc > 1 ? argv[1] : "ejemplo.nexo";
 
-	try {
-		cadena = leer_archivo(nombre_archivo);
-	} catch (...) {
-		return 1;
-	}
+	cadena = leer_archivo(nombre_archivo);
 	
 	cadena = cadena + " ";
 
@@ -288,5 +273,5 @@ int main(int argc, char *argv[]) {
 	}
 	std::cout << "====================================================================\n";
 
-	return 0;
+	return tokens;
 }

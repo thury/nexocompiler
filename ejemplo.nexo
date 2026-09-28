@@ -7,7 +7,7 @@ cientifico = 1.25E+03
 
 mientras contador > limite
     inc contador
-    muestra "Contador actualizado"
+    muestra "Contador actualizado" + contador
 hacer
 
 si contador == limite
