@@ -1,4 +1,5 @@
 # nexocompiler
 compilador especifico hecho para IA
 
-g++ .\compiler.cpp -o a.exe
+W11: 
+´g++ .\* -o a.exe´
