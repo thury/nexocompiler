@@ -1,11 +1,4 @@
-#include "compiler.h"
-
-const std::unordered_set<std::string> palabrasClave = { 
-    "arranca", "cadena", "capturar", "carac", "cierra", 
-    "dec", "entero", "entonces", "escribir", "fin", 
-    "hacer", "hasta", "inc", "inicio", "leer", 
-    "mientras", "muestra", "real", "si", "sino", "ver" 
-};
+#include "analizador_lexico.h"
 
 std::vector<std::vector<int>> matriz;
 
@@ -33,14 +26,6 @@ enum columna {
 	PARENTESIS_ABRIR = 10,
 	PARENTESIS_CERRAR = 11,
 	COMPARADOR_MAYOR = 12
-};
-
-struct Token {
-	std::string tipo;
-	std::string lexema;
-	int linea;
-	Token() = default;
-	Token(const std::string &t, const std::string &l, int n) : tipo(t), lexema(l), linea(n) {}
 };
 
 void construir_matriz_transicion() {
@@ -108,18 +93,18 @@ std::string obtener_tipo_token(int q) {
 }
 
 std::string obtener_tipo_lexema(int q, const std::string &lexema) {
-	if (q == 400) {
-		auto lexema_lower = lexema;
-		if (palabrasClave.find(lexema) == palabrasClave.end()) {
-			return "Id";
-		}
-		//Es una keyword
-		std::transform(lexema_lower.begin(), lexema_lower.end(), lexema_lower.begin(), [](unsigned char c) {
-			return std::toupper(c);
-		});
-		return "KW_" + lexema_lower;
+	if (q != 400) 
+		return obtener_tipo_token(q);
+	
+	auto lexema_lower = lexema;
+	if (palabrasClave.find(lexema) == palabrasClave.end()) {
+		return "Id";
 	}
-	return obtener_tipo_token(q);
+	//Es una keyword
+	std::transform(lexema_lower.begin(), lexema_lower.end(), lexema_lower.begin(), [](unsigned char c) {
+		return std::toupper(c);
+	});
+	return "KW_" + lexema_lower;
 }
 
 void error_lexico(const std::string &lexema, int error_code, int linea) {
@@ -152,8 +137,8 @@ void error_lexico(const std::string &lexema, int error_code, int linea) {
 	}
 }
 
-std::vector<Token> busca_simbolos(const std::vector<std::vector<int>> &matriz, const std::string &cadena) {
-	std::vector<Token> tokens;
+std::vector<LexerToken> busca_simbolos(const std::vector<std::vector<int>> &matriz, const std::string &cadena) {
+	std::vector<LexerToken> tokens;
 	int q = 0;
 	std::string lexema_actual;
 	int linea_actual = 1;
@@ -247,7 +232,7 @@ std::string leer_archivo(const std::string &nombre_archivo) {
 	return buffer.str();
 }
 
-std::vector<Token> analizar_lexico(int argc, char *argv[]) {
+std::vector<LexerToken> analizar_lexico(int argc, char *argv[]) {
 	construir_matriz_transicion();
 	std::string cadena;
 	std::string nombre_archivo = argc > 1 ? argv[1] : "ejemplo.nexo";
@@ -256,7 +241,7 @@ std::vector<Token> analizar_lexico(int argc, char *argv[]) {
 	
 	cadena = cadena + " ";
 
-	std::vector<Token> tokens = busca_simbolos(matriz, cadena);
+	std::vector<LexerToken> tokens = busca_simbolos(matriz, cadena);
 
 	std::cout << "\n====================================================================\n";
 	std::cout << std::left 
