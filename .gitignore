@@ -1,4 +1,4 @@
 *.exe
 ejemplo.nexo
-.vscode
+.vscode/
 __pycache__
