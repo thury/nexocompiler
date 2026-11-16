@@ -1,4 +1,34 @@
-#include "analizador_lexico.h"
+
+#include <iostream>
+#include <vector>
+#include <string>
+#include <cctype>
+#include <unordered_map>
+#include <unordered_set>
+#include <algorithm>
+#include <fstream>
+#include <sstream>
+#include <cstring>
+#include <cerrno>
+#include <iomanip>
+
+const std::unordered_set<std::string> palabrasClave = {
+    "arranca", "cadena", "capturar", "carac", "cierra",
+    "dec", "entero", "entonces", "escribir", "fin",
+    "hacer", "hasta", "inc", "inicio", "leer",
+    "mientras", "muestra", "real", "si", "sino", "ver",
+    "carga", "limpia", "divide", "en", "crea", "repetir",
+    "veces", "entrena", "con", "hasta", "alcanzado",
+    "predice", "guarda"
+};
+
+struct LexerToken {
+	std::string tipo;
+	std::string lexema;
+	int linea;
+	LexerToken() = default;
+	LexerToken(const std::string &t, const std::string &l, int n) : tipo(t), lexema(l), linea(n) {}
+};
 
 std::vector<std::vector<int>> matriz;
 
@@ -25,24 +55,24 @@ enum columna {
 	COMILLAS = 9,
 	PARENTESIS_ABRIR = 10,
 	PARENTESIS_CERRAR = 11,
-	COMPARADOR_MAYOR = 12
+	COMPARADOR_MAYOR = 12,
+	SEMI = 13
 };
 
 void construir_matriz_transicion() {
     std::vector<std::vector<int>> matriztmp = {
-        // 0(esp) 1(dig) 2(.)  3(+-) 4(Ee) 5(let) 6(_)  7(op) 8(=)  9(")  10( ( ) 11( ) ) 12( > )
-        {  0,     1,    -5,   500,  7,    7,    -5,   500,  8,    9,    900,   1000,    1100}, // 0: Inicio
-        {100,     1,     2,    -3,  4,    -1,   -1,   -1,   -1,   -1,    -1,     -1,     -6 }, // 1: Entero
-        { -2,     3,    -2,    -2, -2,    -2,   -2,   -2,   -2,   -1,    -2,     -2,     -2 }, // 2: Punto decimal
-        {200,     3,    -2,    -1,  4,    -2,   -2,   -1,   -2,   -1,    -1,     -1,     -1 }, // 3: Real
-        { -3,     6,    -3,     5, -3,    -3,   -3,   -1,   -2,   -2,    -3,     -3,     -3 }, // 4: 'e' / 'E'
-        { -3,     6,    -3,    -3, -3,    -3,   -3,   -1,   -1,   -2,    -3,     -3,     -3 }, // 5: Signo exp
-        {300,     6,    -3,    -4, -4,    -4,   -4,   -4,   -4,   -4,    -4,     -4,     -4 }, // 6: Cientifico
-        {400,     7,    -4,    -6,  7,     7,    7,   -6,   -6,   -6,    -6,     -6,     -6 }, // 7: ID 
-        {600,    -1,    -1,    -1, -1,    -1,   -1,   -1,  800,   -1,    -1,     -6,     -6 }, // 8: Asignacion (=) o Igualdad (==)
-        {  9,     9,     9,     9,  9,     9,    9,    9,    9,  700,     9,      9,      9 }  // 9: Cadena ("...")
+        // 0(esp) 1(dig) 2(.)  3(+-) 4(Ee) 5(let) 6(_)  7(op) 8(=)  9(")  10( ( ) 11( ) ) 12( > ) 13( ; )
+        {  0,     1,    -5,   500,  7,    7,    -5,   1300,  8,    9,    900,   1000,    1100,1200},
+        {100,     1,     2,    -3,  4,    -1,   -1,   -1,   -1,   -1,    -1,     -1,     -6 ,  -1},
+        { -2,     3,    -2,    -2, -2,    -2,   -2,   -2,   -2,   -1,    -2,     -2,     -2 ,  -1},
+        {200,     3,    -2,    -1,  4,    -2,   -2,   -1,   -2,   -1,    -1,     -1,     -1 ,  -1},
+        { -3,     6,    -3,     5, -3,    -3,   -3,   -1,   -2,   -2,    -3,     -3,     -3 ,  -2},
+        { -3,     6,    -3,    -3, -3,    -3,   -3,   -1,   -1,   -2,    -3,     -3,     -3 ,  -2},
+        {300,     6,    -3,    -4, -4,    -4,   -4,   -4,   -4,   -4,    -4,     -4,     -4 ,  -2},
+        {400,     7,    -4,    -6,  7,     7,    7,   -6,   -6,   -6,    -6,     -6,     -6 ,  -6},
+        {600,    -1,    -1,    -1, -1,    -1,   -1,   -1,  800,   -1,    -1,     -6,     -6 ,  -7},
+        {  9,     9,     9,     9,  9,     9,    9,    9,    9,  700,     9,      9,      9 ,   9}
     };
-
     matriz = matriztmp;
 }
 
@@ -65,13 +95,13 @@ int obtener_columna(char c) {
         case '(': return PARENTESIS_ABRIR;
         case ')': return PARENTESIS_CERRAR;
         case '>': return COMPARADOR_MAYOR;
+		case ';': return SEMI;
         default:
-            if (std::isdigit(static_cast<unsigned char>(c))) 
+            if (std::isdigit(static_cast<unsigned char>(c)))
                 return DIGITO;
-            if (std::isalpha(static_cast<unsigned char>(c))) 
+            if (std::isalpha(static_cast<unsigned char>(c)))
                 return LETRA;
-            return -1;
-    } 
+    }
     return -1;
 }
 
@@ -81,26 +111,26 @@ std::string obtener_tipo_token(int q) {
         case 200: return "NumReal";
         case 300: return "NumNotacionCientifica";
         case 400: return "Id";
-        case 500: return "OperadorAritmetico";
+        case 500: return "Signo";
         case 600: return "Asignacion";
         case 700: return "CadenaCaracteres";
         case 800: return "Igualdad";
         case 900: return "ParentesisAbre";
         case 1000: return "ParentesisCierra";
         case 1100: return "ComparadorMayor";
+				case 1200: return "SEMIC";
+				case 1300: return "Operador";
         default: return "Token";
     }
 }
 
 std::string obtener_tipo_lexema(int q, const std::string &lexema) {
-	if (q != 400) 
+	if (q != 400)
 		return obtener_tipo_token(q);
-	
 	auto lexema_lower = lexema;
 	if (palabrasClave.find(lexema) == palabrasClave.end()) {
 		return "Id";
 	}
-	//Es una keyword
 	std::transform(lexema_lower.begin(), lexema_lower.end(), lexema_lower.begin(), [](unsigned char c) {
 		return std::toupper(c);
 	});
@@ -147,7 +177,6 @@ std::vector<LexerToken> busca_simbolos(const std::vector<std::vector<int>> &matr
 	while (i < cadena.size()) {
 		char c = cadena[i];
 
-		// Omite los caracteres de salto de línea o retorno de carro sin reportar error léxico
 		if (c == '\n' || c == '\r') {
 			if (c == '\n') {
 				linea_actual++;
@@ -207,7 +236,7 @@ std::vector<LexerToken> busca_simbolos(const std::vector<std::vector<int>> &matr
 
 		if (col != 0 || q == 9)
 			lexema_actual.push_back(c);
-			
+
 
 		if (q % 100 == 0 && q != 0) {
 			tokens.emplace_back(obtener_tipo_lexema(q, lexema_actual), lexema_actual, linea_actual);
@@ -232,31 +261,27 @@ std::string leer_archivo(const std::string &nombre_archivo) {
 	return buffer.str();
 }
 
-std::vector<LexerToken> analizar_lexico(int argc, char *argv[]) {
-	construir_matriz_transicion();
-	std::string cadena;
-	std::string nombre_archivo = argc > 1 ? argv[1] : "ejemplo.nexo";
-
-	cadena = leer_archivo(nombre_archivo);
-	
-	cadena = cadena + " ";
-
-	std::vector<LexerToken> tokens = busca_simbolos(matriz, cadena);
-
-	std::cout << "\n====================================================================\n";
-	std::cout << std::left 
-	          << std::setw(25) << "TOKEN" 
-	          << std::setw(30) << "TIPO DE TOKEN" 
+void imprimir_tokens(const std::vector<LexerToken> &tokens) {
+  std::cout << "\n=============================================================================\n";
+	std::cout << std::left
+	          << std::setw(8)  << "#"
+	          << std::setw(25) << "TOKEN"
+	          << std::setw(30) << "TIPO DE TOKEN"
 	          << std::setw(10) << "LINEA" << "\n";
-	std::cout << "====================================================================\n";
+	std::cout << "=============================================================================\n";
 
-	for (const auto &t : tokens) {
-		std::cout << std::left 
-		          << std::setw(25) << t.lexema 
-		          << std::setw(30) << t.tipo 
-		          << std::setw(10) << t.linea << "\n";
+	for (size_t idx = 0; idx < tokens.size(); ++idx) {
+		std::cout << std::left
+	          << std::setw(8)  << idx
+	          << std::setw(25) << tokens[idx].lexema
+	          << std::setw(30) << tokens[idx].tipo
+	          << std::setw(10) << tokens[idx].linea << "\n";
 	}
-	std::cout << "====================================================================\n";
+	std::cout << "=============================================================================\n";
+}
 
-	return tokens;
+std::vector<struct LexerToken> analizar_lexico(const std::string &cadena) {
+    construir_matriz_transicion();
+    std::vector<LexerToken> tokens = busca_simbolos(matriz, cadena);
+    return tokens;
 }
