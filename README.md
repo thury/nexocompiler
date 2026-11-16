@@ -1,6 +1,7 @@
 # nexocompiler
 compilador especifico hecho para IA
 
+<<<<<<< HEAD
 ## Analizador léxico de Ajolote
 
 El proyecto incluye un analizador léxico que reconoce:
@@ -28,3 +29,7 @@ python analizador_lexico.py ejemplo.nexo
 ```
 
 Si no se pasa archivo, el programa usa `ejemplo.nexo` por defecto.
+=======
+W11: 
+´g++ .\* -o a.exe´
+>>>>>>> idconv

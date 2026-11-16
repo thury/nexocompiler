@@ -1,23 +1,20 @@
 arranca
+	datos = carga("animales.csv")
+	limpia datos
+	divide datos en 80
 
-contador = 0
-limite = 10
-promedio = 0.75
-cientifico = 1.25E+03
+	modelo = crea modelo
 
-mientras contador > limite
-    contador = contador + 1
-    muestra "Contador actualizado"
-hacer
+	repetir 5 veces
+		entrena modelo con datos
+	hasta alcanzado 90/100
 
-si contador == limite
-    muestra "Se alcanzo el limite"
-sino
-    muestra "El limite aun no se alcanza"
-cierra
+	resultado = predice modelo
 
-resultado = (contador * 2) / 4
-resto = contador % 2
-nombre = "modelo_prueba.nexo"
-
+	si resultado > 0.8
+		muestra "Prediccion confiable"
+		guarda modelo en "modelo_final.nexo"
+	sino
+		muestra "Ajuste requerido"
+	cierra
 cierra
